@@ -187,7 +187,7 @@ If you use this library in your research, please cite:
 
 ```bibtex
 @software{audio_similarity2024,
-  author = {Your Name},
+  author = {Anirudh Praveen},
   title = {Audio Similarity Search},
   year = {2024},
   publisher = {GitHub},
@@ -204,4 +204,4 @@ If you use this library in your research, please cite:
 ## Contact
 
 - GitHub Issues: [Project Issues](https://github.com/AnirudhPraveen/audio_similarity/issues)
-- Email: your.email@example.com
+- Email: anirudhpraveen2000@example.com
