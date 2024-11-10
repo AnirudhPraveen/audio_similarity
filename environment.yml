@@ -1,0 +1,27 @@
+# environment.yml - for development environment setup
+name: audio_sim
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.12
+  - pytorch::pytorch>=2.0.0
+  - pytorch::torchaudio>=2.0.0
+  - pytorch::faiss-cpu  # or faiss-gpu for CUDA support
+  - pip
+  - pip:
+      - transformers>=4.0.0
+      - matplotlib>=3.3.0
+      - seaborn>=0.11.0
+      - pandas>=1.2.0
+      - numpy>=1.19.0
+      - tqdm>=4.65.0
+      - pytest>=6.0
+      - black>=22.0
+      - isort>=5.0
+      - mypy>=0.900
+      - sphinx>=4.0.0
+      - sphinx-rtd-theme>=1.0.0
+      - sphinx-autodoc-typehints>=1.12.0

@@ -1,0 +1,51 @@
+{% set name = "audio-similarity" %}
+{% set version = "0.1.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  path: ..
+
+build:
+  number: 0
+  noarch: python
+  script: {{ PYTHON }} -m pip install . -vv
+
+requirements:
+  host:
+    - python >=3.12
+    - pip
+    - hatchling
+  run:
+    - python >=3.12
+    - pytorch >=2.0.0
+    - torchaudio >=2.0.0
+    - faiss-cpu
+    - transformers >=4.0.0
+    - numpy >=1.19.0
+    - pandas >=1.2.0
+    - matplotlib >=3.3.0
+    - seaborn >=0.11.0
+    - tqdm >=4.65.0
+
+test:
+  imports:
+    - audio_similarity
+  requires:
+    - pytest
+  commands:
+    - pytest tests/
+
+about:
+  home: https://github.com/yourusername/audio-similarity
+  license: MIT
+  license_file: LICENSE
+  summary: Audio similarity search using wav2vec2 and FAISS
+  doc_url: https://audio-similarity.readthedocs.io
+  dev_url: https://github.com/yourusername/audio-similarity
+
+extra:
+  recipe-maintainers:
+    - yourusername
