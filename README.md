@@ -204,4 +204,4 @@ If you use this library in your research, please cite:
 ## Contact
 
 - GitHub Issues: [Project Issues](https://github.com/AnirudhPraveen/audio_similarity/issues)
-- Email: anirudhpraveen2000@example.com
+- Email: your.email@example.com
