@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "audio_similarity"
 version = "0.1.0"
 authors = [
-    { name="Your Name", email="your.email@example.com" },
+    { name="Anirudh Praveen", email="anirudhpraveen2000@gmail.com" },
 ]
 description = "Audio similarity search using wav2vec2 and FAISS"
 readme = "README.md"
