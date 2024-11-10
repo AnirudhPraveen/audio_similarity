@@ -23,6 +23,22 @@ def setup_argparse():
         default="./output",
         help="Directory for storing output files and visualizations"
     )
+    parser.add_argument(
+        "--query",
+        type=str,
+        help="Path to the query audio file"
+    )
+    parser.add_argument(
+        "--top_k",
+        type=int,
+        default=5,
+        help="Number of similar results to return"
+    )
+    parser.add_argument(
+        "--benchmark",
+        action="store_true",
+        help="Run benchmark comparisons of different index types"
+    )
     return parser
 
 def load_audio_files(dataset_path: Path):
@@ -42,9 +58,21 @@ def load_audio_files(dataset_path: Path):
     
     return audio_files
 
+def verify_query_file(query_path: str):
+    """Verify that the query file exists and is a supported audio format."""
+    supported_formats = {'.wav', '.mp3', '.flac', '.ogg'}
+    query_path = Path(query_path)
+    
+    if not query_path.exists():
+        raise FileNotFoundError(f"Query file {query_path} does not exist")
+    
+    if query_path.suffix.lower() not in supported_formats:
+        raise ValueError(f"Query file format {query_path.suffix} not supported. Supported formats: {supported_formats}")
+    
+    return query_path
+
 def compare_indices(audio_files, output_dir: Path):
     """Compare different FAISS index types."""
-    # Define index configurations to compare
     configs = [
         {'type': IndexType.FLAT},
         {'type': IndexType.IVF, 'params': {'nlist': 10}},
@@ -52,14 +80,11 @@ def compare_indices(audio_files, output_dir: Path):
         {'type': IndexType.PQ, 'params': {'M': 8, 'nbits': 8}},
     ]
     
-    # Initialize searcher with flat index for ground truth
     searcher = AudioSimilaritySearch(index_type=IndexType.FLAT)
     
-    # Index files
     print("Indexing files for benchmark...")
     searcher.add_batch(audio_files)
     
-    # Run benchmark
     print("\nBenchmarking different index types...")
     results = searcher.benchmark(
         compare_with=configs,
@@ -68,7 +93,6 @@ def compare_indices(audio_files, output_dir: Path):
         k=5
     )
     
-    # Visualize benchmark results
     output_dir.mkdir(exist_ok=True, parents=True)
     searcher.visualize_benchmarks(
         metric="all",
@@ -77,29 +101,25 @@ def compare_indices(audio_files, output_dir: Path):
     
     return results
 
-def batch_processing_example(audio_files):
-    """Demonstrate batch processing capabilities."""
+def search_similar_audio(audio_files, query_file: Path, top_k: int = 5):
+    """Search for similar audio files to the query."""
     searcher = AudioSimilaritySearch(
         index_type=IndexType.IVF,
         index_params={'nlist': 10}
     )
     
-    # Process in batches
-    batch_size = 3
-    for i in range(0, len(audio_files), batch_size):
-        batch = audio_files[i:i + batch_size]
-        searcher.add_batch(batch)
+    # Index all files
+    print("Indexing audio files...")
+    searcher.add_batch(audio_files)
     
-    # Perform multiple searches
-    all_results = []
-    for query_file in tqdm(audio_files[:3], desc="Searching"):
-        results = searcher.search(query_file, k=3)
-        all_results.append(results)
+    # Perform search
+    print(f"\nSearching for top {top_k} matches to {query_file.name}...")
+    results = searcher.search(query_file, k=top_k)
     
-    return all_results
+    return results
 
 def main():
-    """Run advanced example with custom dataset location."""
+    """Run advanced example with custom dataset location and query."""
     # Parse command line arguments
     parser = setup_argparse()
     args = parser.parse_args()
@@ -111,6 +131,7 @@ def main():
     print(f"Using dataset from: {dataset_path}")
     print(f"Outputs will be saved to: {output_dir}")
     
+    # Load dataset
     print("\n1. Loading audio files...")
     try:
         audio_files = load_audio_files(dataset_path)
@@ -119,30 +140,35 @@ def main():
         print(f"Error: {e}")
         return
     
-    print("\n2. Comparing different index types...")
-    benchmark_results = compare_indices(audio_files, output_dir)
+    # Run benchmark if requested
+    if args.benchmark:
+        print("\n2. Running index type comparison benchmark...")
+        benchmark_results = compare_indices(audio_files, output_dir)
+        
+        print("\nBenchmark Results:")
+        print("-" * 50)
+        for result in benchmark_results:
+            print(f"\nIndex Type: {result.index_type}")
+            print(f"Build Time: {result.build_time:.4f}s")
+            print(f"Query Time: {result.query_time:.6f}s")
+            print(f"Memory Usage: {result.memory_usage:.2f}MB")
+            print(f"Recall@{result.k}: {result.recall:.4f}")
     
-    print("\nBenchmark Results:")
-    print("-" * 50)
-    for result in benchmark_results:
-        print(f"\nIndex Type: {result.index_type}")
-        print(f"Build Time: {result.build_time:.4f}s")
-        print(f"Query Time: {result.query_time:.6f}s")
-        print(f"Memory Usage: {result.memory_usage:.2f}MB")
-        print(f"Recall@{result.k}: {result.recall:.4f}")
-    
-    print("\n3. Demonstrating batch processing...")
-    search_results = batch_processing_example(audio_files)
-    
-    print("\nBatch Processing Results:")
-    print("-" * 50)
-    for i, results in enumerate(search_results):
-        print(f"\nQuery {i+1} results:")
-        for j, (file_path, distance) in enumerate(results[:3], 1):
-            print(f"{j}. File: {Path(file_path).name}")
-            print(f"   Distance: {distance:.4f}")
-    
-    print(f"\nDone! Check the benchmark visualization in {output_dir}")
+    # Process query if provided
+    if args.query:
+        try:
+            query_file = verify_query_file(args.query)
+            results = search_similar_audio(audio_files, query_file, args.top_k)
+            
+            print("\nSearch Results:")
+            print("-" * 50)
+            for i, (file_path, distance) in enumerate(results, 1):
+                print(f"{i}. File: {Path(file_path).name}")
+                print(f"   Distance: {distance:.4f}")
+                
+        except (FileNotFoundError, ValueError) as e:
+            print(f"Error with query file: {e}")
+            return
 
 if __name__ == "__main__":
     main()
