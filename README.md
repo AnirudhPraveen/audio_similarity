@@ -1,6 +1,7 @@
 # Audio Similarity Search
 
-A Python library for audio similarity search using wav2vec2 embeddings and FAISS indexing. This library provides efficient audio similarity search with support for multiple index types and built-in visualization tools. Documentation is available at [https://AnirudhPraveen.github.io/audio_similarity](https://AnirudhPraveen.github.io/audio_similarity)
+A Python library for audio similarity search using wav2vec2 embeddings and FAISS indexing. This library provides efficient audio similarity search with support for multiple index types and built-in visualization tools. 
+<!-- Documentation is available at [https://AnirudhPraveen.github.io/audio_similarity](https://AnirudhPraveen.github.io/audio_similarity) -->
 
 ## Features
 
@@ -68,7 +69,52 @@ conda install -c conda-forge faiss
 pip install -e .
 ```
 
-## Quick Start
+## Example code
+
+```python
+from audio_similarity import AudioSimilaritySearch, IndexType
+from pathlib import Path
+
+def main():
+    # Initialize
+    searcher = AudioSimilaritySearch(index_type=IndexType.FLAT)
+    
+    # Set up dataset
+    dataset_dir = Path("~/Documents/data").expanduser()
+    query_file = Path("~/Documents/RogerMoore_2.wav").expanduser()
+    
+    # Get audio files
+    audio_files = list(dataset_dir.glob("**/*.wav"))
+    print(f"Found {len(audio_files)} audio files")
+    
+    # Add batch to Index files
+    #searcher.add_batch(audio_files)
+
+    saved_index_dir = Path("./saved_indices/index_20241111-094634").expanduser()
+
+    # Load saved index
+    searcher.load(saved_index_dir)
+    
+    # 1. Get Search Results
+    print("\n1. Search Results:")
+    print("-" * 50)
+    results = searcher.search(str(query_file), k=5)
+    for i, (file_path, distance) in enumerate(results, 1):
+        print(f"{i}. File: {Path(file_path).name}")
+        print(f"   Distance: {distance:.4f}")
+    
+    # 2. Visualize Search Results
+    searcher.visualize_search_results(
+        query_path=str(query_file),
+        results=results,
+        save_path="search_results.png",
+        show=True
+    )
+
+    print(results)
+```
+
+<!-- ## Quick Start
 
 ```python
 from audio_similarity import AudioSimilaritySearch, IndexType
@@ -93,7 +139,7 @@ searcher.visualize_search_results(
     results,
     save_path="results.png"
 )
-```
+``` -->
 
 ## Advanced Usage
 
@@ -150,9 +196,9 @@ results = searcher.benchmark(
 searcher.visualize_benchmarks()
 ```
 
-<!-- ## Documentation
+## Documentation
 
-Full documentation is available at [Read the Docs](https://audio-similarity.readthedocs.io/). -->
+Full documentation is available at [Read the Docs](https://AnirudhPraveen.github.io/audio_similarity).
 
 ## Contributing
 
