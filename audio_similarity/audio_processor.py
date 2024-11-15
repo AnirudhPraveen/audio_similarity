@@ -1,18 +1,15 @@
 """
-Audio processing and embedding generation using wav2vec2.
+Audio processing and embedding generation module.
 
 This module provides functionality for loading audio files and generating
-embeddings using Facebook's wav2vec2 model.
-
-Notes
------
-The module assumes audio files are in a format readable by torchaudio
-(e.g., WAV, MP3, etc.)
+embeddings using either mean pooling (AudioProcessor) or TF-IDF weighting 
+(AudioTfidfProcessor) of wav2vec2 features.
 """
 
 from pathlib import Path
-from typing import Tuple, Optional, Union
+from typing import Dict, List, Tuple, Optional, Union
 import logging
+from collections import Counter
 
 import numpy as np
 import torch
@@ -24,40 +21,20 @@ logger = logging.getLogger(__name__)
 
 class AudioProcessor:
     """
-    Audio processing and embedding generation class.
+    Base audio processing class using wav2vec2 with mean pooling.
 
-    This class handles loading audio files, preprocessing them to a standard
-    format, and generating embeddings using the wav2vec2 model.
+    Args:
+        cache_dir (Optional[str]): Directory for caching wav2vec2 model files.
+        device (Optional[str]): Device to use for computation ('cuda' or 'cpu').
+        target_sample_rate (int): Sample rate to resample audio to. Defaults to 16000.
+        model_name (str): Name of the wav2vec2 model to use. 
+            Defaults to 'facebook/wav2vec2-base'.
 
-    Parameters
-    ----------
-    cache_dir : str, optional
-        Directory for caching wav2vec2 model files
-    device : str, optional
-        Device to use for computation ('cuda' or 'cpu')
-    target_sample_rate : int, optional
-        Sample rate to resample audio to, by default 16000
-    model_name : str, optional
-        Name of the wav2vec2 model to use, by default 'facebook/wav2vec2-base'
-
-    Attributes
-    ----------
-    device : torch.device
-        Device being used for computation
-    processor : Wav2Vec2Processor
-        Wav2vec2 processor for audio preprocessing
-    model : Wav2Vec2Model
-        Wav2vec2 model for generating embeddings
-    target_sample_rate : int
-        Target sample rate for audio processing
-
-    Examples
-    --------
-    >>> processor = AudioProcessor()
-    >>> waveform, sample_rate = processor.load_audio("audio.wav")
-    >>> embedding = processor.get_embedding(waveform)
-    >>> print(embedding.shape)
-    torch.Size([1, 768])
+    Examples:
+        >>> processor = AudioProcessor()
+        >>> embedding = processor.process_file("audio.wav")
+        >>> print(embedding.shape)
+        (1, 768)
     """
 
     def __init__(
@@ -87,8 +64,6 @@ class AudioProcessor:
             model_name,
             cache_dir=self.cache_dir
         ).to(self.device)
-
-        self.model.gradient_checkpointing_enable()
         
         self.model.eval()
 
@@ -99,29 +74,17 @@ class AudioProcessor:
         """
         Load and preprocess an audio file.
 
-        Parameters
-        ----------
-        audio_path : str or Path
-            Path to the audio file
+        Args:
+            audio_path (Union[str, Path]): Path to the audio file.
 
-        Returns
-        -------
-        Tuple[torch.Tensor, int]
-            - Preprocessed audio waveform
-            - Sample rate
+        Returns:
+            Tuple[torch.Tensor, int]: Tuple containing:
+                - Preprocessed audio waveform
+                - Sample rate
 
-        Raises
-        ------
-        FileNotFoundError
-            If the audio file doesn't exist
-        RuntimeError
-            If the audio file can't be loaded
-
-        Notes
-        -----
-        The audio will be:
-        - Converted to mono if stereo
-        - Resampled to target_sample_rate if necessary
+        Raises:
+            FileNotFoundError: If the audio file doesn't exist.
+            RuntimeError: If the audio file can't be loaded.
         """
         audio_path = Path(audio_path)
         if not audio_path.exists():
@@ -152,44 +115,29 @@ class AudioProcessor:
     ) -> Union[torch.Tensor, np.ndarray]:
         """
         Generate embedding from audio waveform using wav2vec2.
-        Parameters
-        ----------
-        waveform : torch.Tensor
-            Audio waveform tensor
-        return_numpy : bool, optional
-            If True, returns numpy array, otherwise torch tensor
-        Returns
-        -------
-        Union[torch.Tensor, np.ndarray]
-            Audio embedding vector of shape (1, 768)
+
+        Args:
+            waveform (torch.Tensor): Audio waveform tensor.
+            return_numpy (bool): If True, returns numpy array, otherwise torch tensor.
+
+        Returns:
+            Union[torch.Tensor, np.ndarray]: Audio embedding vector of shape (1, 768).
         """
-        # Ensure waveform is in correct shape [batch_size, sequence_length]
         if len(waveform.shape) == 2 and waveform.shape[0] == 1:
-            # If [1, sequence_length], squeeze first dimension
             waveform = waveform.squeeze(0)
-        elif len(waveform.shape) > 2:
-            raise ValueError(f"Unexpected waveform shape: {waveform.shape}")
         
-        # Add batch dimension if needed
         if len(waveform.shape) == 1:
             waveform = waveform.unsqueeze(0)
             
-        print(f"Waveform shape before processor: {waveform.shape}")  # Debug print
-        
-        # Prepare input
         inputs = self.processor(
-            waveform.numpy(),  # processor expects numpy array
+            waveform.numpy(),
             sampling_rate=self.target_sample_rate,
             return_tensors="pt"
         )
         input_values = inputs.input_values.to(self.device)
         
-        print(f"Input values shape after processor: {input_values.shape}")  # Debug print
-        
-        # Generate embedding
         with torch.no_grad():
             outputs = self.model(input_values)
-            # Mean pooling over time dimension
             embedding = outputs.last_hidden_state.mean(dim=1)
         
         if return_numpy:
@@ -204,24 +152,240 @@ class AudioProcessor:
         """
         Process an audio file and return its embedding.
 
-        Parameters
-        ----------
-        audio_path : str or Path
-            Path to the audio file
-        return_numpy : bool, optional
-            If True, returns numpy array, otherwise torch tensor
+        Args:
+            audio_path (Union[str, Path]): Path to the audio file.
+            return_numpy (bool): If True, returns numpy array, otherwise torch tensor.
 
-        Returns
-        -------
-        Union[torch.Tensor, np.ndarray]
-            Audio embedding vector
-
-        Examples
-        --------
-        >>> processor = AudioProcessor()
-        >>> embedding = processor.process_file("audio.wav")
-        >>> print(embedding.shape)
-        (1, 768)
+        Returns:
+            Union[torch.Tensor, np.ndarray]: Audio embedding vector.
         """
         waveform, _ = self.load_audio(audio_path)
         return self.get_embedding(waveform, return_numpy=return_numpy)
+
+
+class AudioTfidfProcessor(AudioProcessor):
+    """
+    Audio processing class using wav2vec2 with TF-IDF weighting.
+    
+    This class extends AudioProcessor to use TF-IDF weighting instead of mean pooling
+    for generating embeddings from wav2vec2 features.
+
+    Args:
+        cache_dir (Optional[str]): Directory for caching wav2vec2 model files.
+        device (Optional[str]): Device to use for computation ('cuda' or 'cpu').
+        target_sample_rate (int): Sample rate to resample audio to. Defaults to 16000.
+        model_name (str): Name of the wav2vec2 model to use. 
+            Defaults to 'facebook/wav2vec2-base'.
+        num_bins (int): Number of bins for discretizing feature values. Defaults to 100.
+
+    Examples:
+        >>> processor = AudioTfidfProcessor()
+        >>> embedding = processor.process_file("audio.wav")
+        >>> print(embedding.shape)
+        (1, 768)
+    """
+    
+    def __init__(
+        self,
+        cache_dir: Optional[str] = None,
+        device: Optional[str] = None,
+        target_sample_rate: int = 16000,
+        model_name: str = 'facebook/wav2vec2-base',
+        num_bins: int = 100
+    ) -> None:
+        super().__init__(cache_dir, device, target_sample_rate, model_name)
+        self.num_bins = num_bins
+        self.feature_mins = None
+        self.feature_maxs = None
+
+    def create_bins(
+        self,
+        feature_range: Tuple[float, float]
+    ) -> np.ndarray:
+        """
+        Creates evenly spaced bins for feature discretization.
+
+        Args:
+            feature_range (Tuple[float, float]): The (min, max) range of feature values.
+
+        Returns:
+            np.ndarray: Array of bin edges including leftmost and rightmost edges.
+        """
+        return np.linspace(feature_range[0], feature_range[1], self.num_bins + 1)
+
+    def featurize_timestep(
+        self,
+        features: np.ndarray,
+        bins: np.ndarray
+    ) -> str:
+        """
+        Converts a single timestep's features into a token string.
+
+        Args:
+            features (np.ndarray): 1D array of feature values for one timestep.
+            bins (np.ndarray): Array of bin edges for discretization.
+
+        Returns:
+            str: Token representing the binned features.
+        """
+        bin_indices = np.digitize(features, bins)
+        tokens = [f"f{i}_b{b}" for i, b in enumerate(bin_indices)]
+        return "_".join(tokens)
+
+    def calculate_tf(
+        self,
+        tokens: List[str]
+    ) -> Dict[str, int]:
+        """
+        Calculates term frequencies for a list of tokens.
+
+        Args:
+            tokens (List[str]): List of tokens representing feature patterns.
+
+        Returns:
+            Dict[str, int]: Dictionary mapping tokens to their frequency counts.
+        """
+        return dict(Counter(tokens))
+
+    def calculate_idf(
+        self,
+        tf_dict: Dict[str, int],
+        n_samples: int
+    ) -> Dict[str, float]:
+        """
+        Calculates inverse document frequencies from term frequencies.
+
+        Args:
+            tf_dict (Dict[str, int]): Dictionary of term frequencies.
+            n_samples (int): Total number of samples (timesteps).
+
+        Returns:
+            Dict[str, float]: Dictionary mapping tokens to their IDF scores.
+        """
+        return {term: np.log(n_samples / count) for term, count in tf_dict.items()}
+
+    def calculate_tfidf(
+        self,
+        features: np.ndarray
+    ) -> Dict[str, float]:
+        """
+        Calculates TF-IDF scores for audio feature patterns.
+
+        Args:
+            features (np.ndarray): 2D array of shape (timesteps, features).
+
+        Returns:
+            Dict[str, float]: Dictionary mapping feature patterns to TF-IDF scores.
+
+        Raises:
+            ValueError: If features array is not 2D or is empty.
+        """
+        if len(features.shape) != 2 or features.size == 0:
+            raise ValueError(f"Expected non-empty 2D array, got shape {features.shape}")
+
+        # Update or initialize feature statistics
+        if self.feature_mins is None:
+            self.feature_mins = np.min(features, axis=0)
+            self.feature_maxs = np.max(features, axis=0)
+
+        # Create bins for discretization
+        bins = self.create_bins((np.min(self.feature_mins), np.max(self.feature_maxs)))
+
+        # Convert each timestep to a token
+        tokens = []
+        for timestep_features in features:
+            token = self.featurize_timestep(timestep_features, bins)
+            tokens.append(token)
+
+        # Calculate TF and IDF
+        tf_dict = self.calculate_tf(tokens)
+        idf_dict = self.calculate_idf(tf_dict, len(tokens))
+
+        # Calculate final TF-IDF scores
+        tfidf_dict = {
+            term: count * idf_dict[term]
+            for term, count in tf_dict.items()
+        }
+
+        return tfidf_dict
+
+    def get_embedding(
+        self,
+        waveform: torch.Tensor,
+        return_numpy: bool = True
+    ) -> Union[torch.Tensor, np.ndarray]:
+        """
+        Generate TF-IDF weighted embedding from audio waveform using wav2vec2.
+
+        Args:
+            waveform (torch.Tensor): Audio waveform tensor.
+            return_numpy (bool): If True, returns numpy array, otherwise torch tensor.
+
+        Returns:
+            Union[torch.Tensor, np.ndarray]: Audio embedding vector of shape (1, 768).
+
+        Raises:
+            ValueError: If waveform has unexpected shape.
+        """
+        # Ensure waveform is in correct shape
+        if len(waveform.shape) == 2 and waveform.shape[0] == 1:
+            waveform = waveform.squeeze(0)
+        elif len(waveform.shape) > 2:
+            raise ValueError(f"Unexpected waveform shape: {waveform.shape}")
+        
+        if len(waveform.shape) == 1:
+            waveform = waveform.unsqueeze(0)
+        
+        # Get wav2vec2 features
+        inputs = self.processor(
+            waveform.numpy(),
+            sampling_rate=self.target_sample_rate,
+            return_tensors="pt"
+        )
+        input_values = inputs.input_values.to(self.device)
+        
+        with torch.no_grad():
+            outputs = self.model(input_values)
+            features = outputs.last_hidden_state.cpu().numpy()
+        
+        # Calculate TF-IDF scores
+        tfidf_dict = self.calculate_tfidf(features.reshape(-1, features.shape[-1]))
+        
+        # Create sparse vector of TF-IDF scores
+        unique_patterns = sorted(tfidf_dict.keys())
+        tfidf_vector = np.array([tfidf_dict[pattern] for pattern in unique_patterns])
+        
+        # Project to target dimension (768)
+        projection_matrix = np.random.randn(len(tfidf_vector), 768)
+        embedding = tfidf_vector.dot(projection_matrix)
+        
+        # Normalize the embedding
+        embedding = embedding / np.linalg.norm(embedding)
+        embedding = embedding.reshape(1, -1)
+        
+        if not return_numpy:
+            embedding = torch.from_numpy(embedding).float()
+        
+        return embedding
+    
+    def process_file(
+        self,
+        audio_path: Union[str, Path],
+        return_numpy: bool = True
+    ) -> Union[torch.Tensor, np.ndarray]:
+        """
+        Process an audio file and return its embedding.
+
+        Args:
+            audio_path (Union[str, Path]): Path to the audio file.
+            return_numpy (bool): If True, returns numpy array, otherwise torch tensor.
+
+        Returns:
+            Union[torch.Tensor, np.ndarray]: Audio embedding vector.
+        """
+        waveform, _ = self.load_audio(audio_path)
+        return self.get_embedding(waveform, return_numpy=return_numpy)
+
+
+# Make both classes available when importing from this module
+__all__ = ['AudioProcessor', 'AudioTfidfProcessor']

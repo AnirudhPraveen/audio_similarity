@@ -7,7 +7,7 @@ import torchaudio
 import transformers
 from pathlib import Path
 
-from audio_similarity.audio_processor import AudioProcessor
+from audio_similarity.audio_processor import AudioProcessor, AudioTfidfProcessor
 
 @pytest.fixture
 def sample_waveform():
@@ -166,3 +166,135 @@ class TestAudioProcessor:
         """Test processing on GPU if available."""
         embedding = self.processor.process_file(self.test_audio_path)
         assert isinstance(embedding, np.ndarray)  # Should work regardless of device
+
+
+
+class TestAudioTfidfProcessor:
+    """Test cases for AudioTfidfProcessor class."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self, test_audio_dir, sample_waveform):
+        """Set up test fixtures."""
+        self.processor = AudioTfidfProcessor(num_bins=10)  # Smaller number of bins for testing
+        self.waveform, self.sample_rate = sample_waveform
+        self.test_audio_path = test_audio_dir / "test_audio.wav"
+        
+        # Save test audio file
+        torchaudio.save(str(self.test_audio_path), self.waveform, self.sample_rate)
+
+    def test_initialization(self):
+        """Test AudioTfidfProcessor initialization."""
+        assert self.processor.target_sample_rate == 16000
+        assert self.processor.num_bins == 10
+        assert self.processor.feature_mins is None
+        assert self.processor.feature_maxs is None
+
+    def test_create_bins(self):
+        """Test bin creation."""
+        bins = self.processor.create_bins((0.0, 1.0))
+        assert len(bins) == self.processor.num_bins + 1
+        assert bins[0] == 0.0
+        assert bins[-1] == 1.0
+
+    def test_featurize_timestep(self):
+        """Test feature discretization."""
+        features = np.array([0.1, 0.5, 0.9])
+        bins = np.array([0.0, 0.33, 0.66, 1.0])
+        token = self.processor.featurize_timestep(features, bins)
+        
+        assert isinstance(token, str)
+        assert token.startswith("f0_b")
+        assert "_f1_b" in token
+        assert "_f2_b" in token
+
+    def test_calculate_tf(self):
+        """Test term frequency calculation."""
+        tokens = ["token1", "token2", "token1", "token3", "token1"]
+        tf_dict = self.processor.calculate_tf(tokens)
+        
+        assert tf_dict["token1"] == 3
+        assert tf_dict["token2"] == 1
+        assert tf_dict["token3"] == 1
+
+    def test_calculate_idf(self):
+        """Test IDF calculation."""
+        tf_dict = {"token1": 3, "token2": 1}
+        n_samples = 4
+        idf_dict = self.processor.calculate_idf(tf_dict, n_samples)
+        
+        assert idf_dict["token1"] == pytest.approx(np.log(4/3))
+        assert idf_dict["token2"] == pytest.approx(np.log(4/1))
+
+    def test_calculate_tfidf(self):
+        """Test TF-IDF calculation."""
+        features = np.array([
+            [0.1, 0.2],
+            [0.3, 0.4],
+            [0.1, 0.2],
+            [0.7, 0.8]
+        ])
+        tfidf_dict = self.processor.calculate_tfidf(features)
+        
+        assert isinstance(tfidf_dict, dict)
+        assert len(tfidf_dict) > 0
+        assert all(isinstance(score, float) for score in tfidf_dict.values())
+
+    def test_get_embedding(self, sample_waveform):
+        """Test TF-IDF based embedding generation."""
+        waveform, _ = sample_waveform
+        embedding = self.processor.get_embedding(waveform)
+        
+        assert isinstance(embedding, np.ndarray)
+        assert embedding.shape == (1, 768)
+        assert np.allclose(np.linalg.norm(embedding), 1.0, atol=1e-6)
+
+    def test_get_embedding_torch_output(self, sample_waveform):
+        """Test TF-IDF based embedding generation with torch output."""
+        waveform, _ = sample_waveform
+        embedding = self.processor.get_embedding(waveform, return_numpy=False)
+        
+        assert isinstance(embedding, torch.Tensor)
+        assert embedding.shape == (1, 768)
+        assert torch.allclose(torch.norm(embedding), torch.tensor(1.0), atol=1e-6)
+
+    def test_process_file(self):
+        """Test complete file processing with TF-IDF."""
+        embedding = self.processor.process_file(self.test_audio_path)
+        
+        assert isinstance(embedding, np.ndarray)
+        assert embedding.shape == (1, 768)
+        assert np.allclose(np.linalg.norm(embedding), 1.0, atol=1e-6)
+
+    def test_feature_statistics_update(self):
+        """Test feature statistics are properly updated."""
+        _ = self.processor.process_file(self.test_audio_path)
+        
+        assert self.processor.feature_mins is not None
+        assert self.processor.feature_maxs is not None
+        assert self.processor.feature_mins.shape[-1] == 768
+        assert self.processor.feature_maxs.shape[-1] == 768
+
+    def test_consistent_embeddings(self):
+        """Test that same input produces consistent embeddings."""
+        embedding1 = self.processor.process_file(self.test_audio_path)
+        embedding2 = self.processor.process_file(self.test_audio_path)
+        
+        # Since we use same feature statistics, results should be identical
+        assert np.allclose(embedding1, embedding2)
+
+    @pytest.mark.parametrize("num_bins", [5, 10, 20])
+    def test_different_bin_sizes(self, num_bins):
+        """Test processor with different numbers of bins."""
+        processor = AudioTfidfProcessor(num_bins=num_bins)
+        embedding = processor.process_file(self.test_audio_path)
+        
+        assert embedding.shape == (1, 768)
+        assert np.allclose(np.linalg.norm(embedding), 1.0, atol=1e-6)
+
+    def test_invalid_features(self):
+        """Test handling of invalid feature arrays."""
+        with pytest.raises(ValueError):
+            self.processor.calculate_tfidf(np.array([]))  # Empty array
+        
+        with pytest.raises(ValueError):
+            self.processor.calculate_tfidf(np.array([1, 2, 3]))  # 1D array

@@ -23,7 +23,7 @@ import torch
 import faiss
 from tqdm import tqdm
 
-from .audio_processor import AudioProcessor
+from .audio_processor import AudioProcessor, AudioTfidfProcessor
 from .index_factory import IndexFactory, IndexType
 from .utils import AudioBatch, ensure_valid_audio
 
@@ -64,7 +64,8 @@ class AudioSimilaritySearch:
         cache_dir: Optional[str] = None,
         device: Optional[str] = None
     ):
-        self.audio_processor = AudioProcessor(cache_dir=cache_dir, device=device)
+        # self.audio_processor = AudioProcessor(cache_dir=cache_dir, device=device)
+        self.audio_processor = AudioTfidfProcessor(cache_dir=cache_dir, device=device)
         self.index_params = index_params or {}
         self.dimension = 768  # wav2vec2 embedding dimension
         
