@@ -85,3 +85,7 @@ Thumbs.db
 output/
 temp/
 logs/
+
+search_results.png 
+example_data/
+saved_indices/
