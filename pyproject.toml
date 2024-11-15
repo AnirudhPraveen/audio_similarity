@@ -1,48 +1,54 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
-name = "audio_similarity"
-version = "0.1.0"
-authors = [
-    { name="Anirudh Praveen", email="anirudhpraveen2000@gmail.com" },
-]
-description = "Audio similarity search using wav2vec2 and FAISS"
+name = "anirudhp-audio-similarity"
+dynamic = ["version"]
+description = "A package for audio similarity analysis"
 readme = "README.md"
-requires-python = ">=3.7"
-classifiers = [
-    "Development Status :: 3 - Alpha",
-    "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python :: 3",
-    "Topic :: Multimedia :: Sound/Audio :: Analysis",
+authors = [
+    { name = "Your Name", email = "your.email@example.com" }
 ]
+license = { file = "LICENSE" }
+requires-python = ">=3.8"
 dependencies = [
-    "torch>=1.8.0",
-    "torchaudio>=0.8.0",
-    "transformers>=4.0.0",
-    "matplotlib>=3.3.0",
-    "seaborn>=0.11.0",
-    "pandas>=1.2.0",
-    "numpy>=1.19.0",
+    "torch",
+    "torchaudio",
+    "numpy",
+    "scipy",
 ]
 
 [project.optional-dependencies]
 cpu = [
-    "faiss-cpu>=1.7.0"
+    "faiss-cpu>=1.7.0",
 ]
 dev = [
     "pytest>=6.0",
-    "black>=22.0",
-    "isort>=5.0",
-    "mypy>=0.900",
-    "sphinx>=4.0.0",
-    "sphinx-rtd-theme>=1.0.0",
-    "sphinx-autodoc-typehints>=1.12.0",
+    "pytest-cov",
+    "flake8",
+    "black",
+    "sphinx",
+    "sphinx-rtd-theme",
 ]
 
-[project.urls]
-"Homepage" = "https://github.com/AnirudhPraveen/audio_similarity"
-"Bug Tracker" = "https://github.com/AnirudhPraveen/audio_similarity/issues"
-"Documentation" = "https://AnirudhPraveen.github.io/audio_similarity"
+[tool.hatch.build.targets.wheel]
+packages = ["audio_similarity"]
+include = [
+    "audio_similarity/*.py",
+    "audio_similarity/__pycache__",
+    "audio_similarity/_pycache_/*.pyc",
+    "audio_similarity/_pycache_/*.pyx",
+    "audio_similarity/*.cpython-310.pyc",
+    "audio_similarity/*.cpython-312.pyc"
+]
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build]
+artifacts = [
+    "audio_similarity/*.pyc",
+    "audio_similarity/*.pyx",
+    "audio_similarity/*.so"
+]
