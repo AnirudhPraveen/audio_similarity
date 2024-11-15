@@ -80,8 +80,8 @@ def main():
     searcher = AudioSimilaritySearch(index_type=IndexType.FLAT)
     
     # Set up dataset
-    dataset_dir = Path("~/Documents/data").expanduser()
-    query_file = Path("~/Documents/RogerMoore_2.wav").expanduser()
+    dataset_dir = Path("dataset_directory").expanduser()
+    query_file = Path("query_directory").expanduser()
     
     # Get audio files
     audio_files = list(dataset_dir.glob("**/*.wav"))
@@ -90,7 +90,8 @@ def main():
     # Add batch to Index files
     #searcher.add_batch(audio_files)
 
-    saved_index_dir = Path("./saved_indices/index_20241111-094634").expanduser()
+    saved_index_dir = Path("./saved_index_folder").expanduser() 
+    # do not include the index.faiss file in the directory
 
     # Load saved index
     searcher.load(saved_index_dir)

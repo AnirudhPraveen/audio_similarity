@@ -29,6 +29,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+cpu = [
+    "faiss-cpu>=1.7.0"
+]
 dev = [
     "pytest>=6.0",
     "black>=22.0",
