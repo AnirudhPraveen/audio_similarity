@@ -65,7 +65,7 @@ class AudioSimilaritySearch:
         device: Optional[str] = None
     ):
         # self.audio_processor = AudioProcessor(cache_dir=cache_dir, device=device)
-        self.audio_processor = AudioTfidfProcessor(cache_dir=cache_dir, device=device)
+        self.audio_processor = AudioProcessor(cache_dir=cache_dir, device=device)
         self.index_params = index_params or {}
         self.dimension = 768  # wav2vec2 embedding dimension
         
@@ -118,42 +118,41 @@ class AudioSimilaritySearch:
         List[int]
             Indices of added files
         """
-        print(f"Starting add_batch with {len(audio_paths)} files")  # Debug print
+        print(f"Starting add_batch with {len(audio_paths)} files")  
         indices = []
         
-        print("Creating AudioBatch...")  # Debug print
+        print("Creating AudioBatch...")  
         batch = AudioBatch.from_files(audio_paths)
-        print(f"AudioBatch created with {len(batch.waveforms)} waveforms")  # Debug print
         
         embeddings = []
         valid_paths = []
         for i, (waveform, path) in enumerate(zip(batch.waveforms, batch.file_paths)):
-            print(f"Processing file {i+1}/{len(batch.waveforms)}: {path}")  # Debug print
-            print(f"Waveform shape: {waveform.shape}")  # Debug print
+            print(f"Processing file {i+1}/{len(batch.waveforms)}: {path}")  
+            print(f"Waveform shape: {waveform.shape}")  
             try:
                 embedding = self.audio_processor.get_embedding(waveform)
-                print(f"Generated embedding shape: {embedding.shape}")  # Debug print
+                print(f"Generated embedding shape: {embedding.shape}")  
                 embeddings.append(embedding)
                 valid_paths.append(path)
             except Exception as e:
-                print(f"Full error details: {str(e)}")  # More detailed error print
+                print(f"Full error details: {str(e)}")  
                 logger.warning(f"Failed to process {path}: {e}")
         
-        print(f"Successfully processed {len(embeddings)} files")  # Debug print
+        print(f"Successfully processed {len(embeddings)} files")  
         
         if embeddings:
-            print("Stacking embeddings...")  # Debug print
+            print("Stacking embeddings...") 
             embeddings = np.vstack(embeddings)
-            print(f"Adding to index, embeddings shape: {embeddings.shape}")  # Debug print
+            print(f"Adding to index, embeddings shape: {embeddings.shape}") 
             self.index.add(embeddings)
             
             for path in valid_paths:
                 indices.append(self.next_index)
                 self.file_paths[self.next_index] = str(path)
                 self.next_index += 1
-                print(f"Added file {path} with index {self.next_index-1}")  # Debug print
+                print(f"Added file {path} with index {self.next_index-1}") 
         
-        print(f"Returning {len(indices)} indices")  # Debug print
+        print(f"Returning {len(indices)} indices") 
         return indices 
 
     def search(
@@ -358,17 +357,17 @@ class AudioSimilaritySearch:
         
         return results
 
-    @staticmethod
-    def _compute_recall(
-        ground_truth: np.ndarray,
-        results: np.ndarray,
-        k: int
-    ) -> float:
-        """Compute recall@k between ground truth and results."""
-        n = ground_truth.shape[0]
-        recall = 0
-        for i in range(n):
-            gt = set(ground_truth[i, :k])
-            res = set(results[i, :k])
-            recall += len(gt.intersection(res)) / k
-        return recall / n
+    # @staticmethod
+    # def _compute_recall(
+    #     ground_truth: np.ndarray,
+    #     results: np.ndarray,
+    #     k: int
+    # ) -> float:
+    #     """Compute recall@k between ground truth and results."""
+    #     n = ground_truth.shape[0]
+    #     recall = 0
+    #     for i in range(n):
+    #         gt = set(ground_truth[i, :k])
+    #         res = set(results[i, :k])
+    #         recall += len(gt.intersection(res)) / k
+    #     return recall / n
