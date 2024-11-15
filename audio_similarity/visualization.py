@@ -185,6 +185,56 @@ class AudioSimilaritySearch:
         
         return results
 
+    # def visualize_search_results(
+    #     self,
+    #     query_path: str,
+    #     results: List[Tuple[str, float]],
+    #     save_path: Optional[str] = None,
+    #     show: bool = True
+    # ) -> Optional[plt.Figure]:
+    #     """
+    #     Visualize search results with distance comparison.
+
+    #     Parameters
+    #     ----------
+    #     query_path : str
+    #         Path to query audio file
+    #     results : List[Tuple[str, float]]
+    #         List of (file_path, distance) tuples
+    #     save_path : str, optional
+    #         Path to save the visualization
+    #     show : bool, optional
+    #         Whether to display the plot
+    #     """
+    #     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8))
+        
+    #     # Plot query waveform
+    #     query_waveform, _ = self.audio_processor.load_audio(query_path)
+    #     ax1.plot(query_waveform[0].numpy())
+    #     ax1.set_title('Query Audio Waveform')
+    #     ax1.set_xlabel('Sample')
+    #     ax1.set_ylabel('Amplitude')
+        
+    #     # Plot distances
+    #     distances = [dist for _, dist in results]
+    #     labels = [Path(path).name for path, _ in results]
+        
+    #     sns.barplot(x=labels, y=distances, ax=ax2)
+    #     ax2.set_title('Distance to Query')
+    #     ax2.set_xlabel('Similar Audio Files')
+    #     ax2.set_ylabel('Distance')
+    #     ax2.tick_params(axis='x', rotation=45)
+        
+    #     plt.tight_layout()
+        
+    #     if save_path:
+    #         plt.savefig(save_path, bbox_inches='tight')
+        
+    #     if show:
+    #         plt.show()
+    #         return None
+    #     return fig
+
     def visualize_search_results(
         self,
         query_path: str,
@@ -194,7 +244,6 @@ class AudioSimilaritySearch:
     ) -> Optional[plt.Figure]:
         """
         Visualize search results with distance comparison.
-
         Parameters
         ----------
         query_path : str
@@ -209,17 +258,49 @@ class AudioSimilaritySearch:
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8))
         
         # Plot query waveform
-        query_waveform, _ = self.audio_processor.load_audio(query_path)
-        ax1.plot(query_waveform[0].numpy())
+        query_waveform, sr = self.audio_processor.load_audio(query_path)  # Now correctly getting sr
+        waveform = query_waveform[0].numpy()
+        duration = len(waveform) / sr  # Calculate duration in seconds
+        time_axis = np.linspace(0, duration, len(waveform))  # Create time axis
+        
+        ax1.plot(time_axis, waveform)
         ax1.set_title('Query Audio Waveform')
-        ax1.set_xlabel('Sample')
+        ax1.set_xlabel('Time (seconds)')
         ax1.set_ylabel('Amplitude')
+        
+        # Add grid for better readability
+        ax1.grid(True, alpha=0.3)
+        
+        # Format x-axis ticks to show reasonable time intervals
+        ax1.xaxis.set_major_formatter(plt.FormatStrFormatter('%.2f'))
         
         # Plot distances
         distances = [dist for _, dist in results]
         labels = [Path(path).name for path, _ in results]
         
-        sns.barplot(x=labels, y=distances, ax=ax2)
+        # Create barplot
+        bars = sns.barplot(x=labels, y=distances, ax=ax2)
+        
+        # Add value annotations on top of each bar
+        for i, bar in enumerate(bars.patches):
+            bars.text(
+                bar.get_x() + bar.get_width()/2.,  # x position
+                bar.get_height(),                  # y position
+                f'{distances[i]:.4f}',            # text (distance value with 4 decimal places)
+                ha='center',                      # horizontal alignment
+                va='bottom'                       # vertical alignment
+            )
+        
+        # Improve y-axis visibility
+        y_min = min(distances)
+        y_max = max(distances)
+        y_padding = (y_max - y_min) * 0.1  # Add 10% padding
+        
+        ax2.set_ylim(y_min - y_padding, y_max + y_padding)
+        
+        # Format y-axis to show more decimal places
+        ax2.yaxis.set_major_formatter(plt.FormatStrFormatter('%.4f'))
+        
         ax2.set_title('Distance to Query')
         ax2.set_xlabel('Similar Audio Files')
         ax2.set_ylabel('Distance')
