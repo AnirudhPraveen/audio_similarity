@@ -1,13 +1,13 @@
 # Audio Similarity Search
 
-A Python library for audio similarity search using wav2vec2 embeddings and FAISS indexing. This library provides efficient audio similarity search with support for multiple index types and built-in visualization tools.
+A Python library for audio similarity search using wav2vec2 embeddings and FAISS indexing. This library provides efficient audio similarity search with support for multiple index types and built-in visualization tools. Documentation is available at [https://AnirudhPraveen.github.io/audio_similarity](https://AnirudhPraveen.github.io/audio_similarity)
 
 ## Features
 
 - 🎵 Audio similarity search using wav2vec2 embeddings
 - 🚀 Multiple FAISS index types (Flat, IVF, HNSW, PQ)
 - 📊 Built-in visualization tools
-[comment]: <> - 📈 Performance benchmarking
+- 📈 Performance benchmarking
 - 🔄 Batch processing support
 - 💾 Save and load indices
 
