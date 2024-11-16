@@ -9,7 +9,6 @@ The library uses wav2vec2 (https://huggingface.co/docs/transformers/en/model_doc
 - 🎵 Audio similarity search using wav2vec2 embeddings
 - 🚀 Multiple FAISS index types (Flat, IVF, HNSW, PQ)
 - 📊 Built-in visualization tools
-- 📈 Performance benchmarking
 - 🔄 Batch processing support
 - 💾 Save and load indices
 
