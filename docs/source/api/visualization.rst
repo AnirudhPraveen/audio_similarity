@@ -2,7 +2,7 @@
 Visualization
 ============================
 
-.. automodule:: audio_similarity.visualization
+.. automodule:: faiss_audio_similarity.visualization
    :members:
    :undoc-members:
    :show-inheritance:

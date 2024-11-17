@@ -29,7 +29,7 @@ The recommended way to install is using conda:
     conda install -c conda-forge faiss
 
     # Install the package
-    pip install audio-similarity
+    pip install anirudhp-audio-similarity
 
 Installation from Source
 ----------------------
@@ -39,7 +39,7 @@ For development or the latest features, install from source:
 .. code-block:: bash
 
     # Clone the repository
-    git clone https://github.com/yourusername/audio-similarity.git
+    git clone https://github.com/AnirudhPraveen/audio-similarity.git
     cd audio-similarity
 
     # Create conda environment
@@ -70,7 +70,7 @@ You can verify your installation by running:
 
 .. code-block:: python
 
-    from audio_similarity import AudioSimilaritySearch
+    from anirudhp-audio_similarity import AudioSimilaritySearch
     
     # Initialize the searcher
     searcher = AudioSimilaritySearch()
