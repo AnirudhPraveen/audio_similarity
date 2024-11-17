@@ -3,6 +3,7 @@
 A Python library for audio similarity search using wav2vec2 embeddings and FAISS indexing (https://engineering.fb.com/2017/03/29/data-infrastructure/faiss-a-library-for-efficient-similarity-search/). This library provides efficient audio similarity search with support for multiple index types and built-in visualization tools.
 The library uses wav2vec2 (https://huggingface.co/docs/transformers/en/model_doc/wav2vec2) to get the embeddings from the audio files and these embeddings are indexed by FAISS to do similarity search. 
 <!-- Documentation is available at [https://AnirudhPraveen.github.io/audio_similarity](https://AnirudhPraveen.github.io/audio_similarity) -->
+Enter docs folder and run "make livehtml" to view the full documentation on your local machine, if you don't see the entire documentation in the below Read docs link.
 
 ## Features
 
