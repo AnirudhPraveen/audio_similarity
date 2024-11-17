@@ -47,7 +47,7 @@ conda activate audio_sim
 conda install -c pytorch pytorch torchaudio faiss-cpu
 
 # Install the package
-pip install audio-similarity
+pip install anirudhp-audio-similarity
 ```
 
 ### Development Installation
