@@ -37,7 +37,6 @@ jobs:
         make clean
         make apidoc
         make html-local
-        make livehtml
         
     - name: Setup Pages
       uses: actions/configure-pages@v4
