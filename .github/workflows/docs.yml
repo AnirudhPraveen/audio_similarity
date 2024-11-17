@@ -34,7 +34,9 @@ jobs:
     - name: Build documentation
       run: |
         cd docs
-        make html
+        make clean
+        make apidoc
+        make html-local
         
     - name: Setup Pages
       uses: actions/configure-pages@v4
