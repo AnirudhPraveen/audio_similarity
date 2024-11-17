@@ -6,8 +6,8 @@ def main():
     searcher = AudioSimilaritySearch(index_type=IndexType.FLAT)
     
     # Set up dataset
-    dataset_dir = Path("~/Documents/data").expanduser()
-    query_file = Path("~/Documents/RogerMoore_2.wav").expanduser()
+    dataset_dir = Path("~/Documents/music_wav_files").expanduser()
+    query_file = Path("~/Documents/music_wav_files/006611.wav").expanduser()
     
     # Get audio files
     audio_files = list(dataset_dir.glob("**/*.wav"))
@@ -16,7 +16,9 @@ def main():
     # Index files
     #searcher.add_batch(audio_files)
 
-    saved_index_dir = Path("./saved_indices/index_20241111-094634").expanduser()
+    #searcher.save("./")
+
+    saved_index_dir = Path("./").expanduser()
 
     searcher.load(saved_index_dir)
     

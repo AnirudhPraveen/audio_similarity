@@ -89,3 +89,4 @@ logs/
 search_results.png 
 example_data/
 saved_indices/
+index.faiss
