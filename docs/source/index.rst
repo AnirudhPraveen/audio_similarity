@@ -25,7 +25,6 @@ Audio Similarity's Documentation
    api/audio_processor
    api/index_factory
    api/visualization
-   api/generated/modules
 
 Indices and tables
 ==================
