@@ -33,7 +33,7 @@ pip3 install --pre torch torchaudio --index-url https://download.pytorch.org/whl
 conda install -c conda-forge faiss
 
 # Install the package
-pip install audio-similarity
+pip install anirudhp-audio-similarity
 ```
 
 ### For Other Platforms
